@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent 讲师</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="app" v-cloak>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-mark">讲</div>
+          <div>
+            <h1>Agent 讲师</h1>
+            <p class="brand-sub">{{ displayMode === 'deepseek' ? 'DeepSeek 模式' : '未配置 Key' }}</p>
+          </div>
+        </div>
+        <span class="mode-pill" :class="displayMode">
+          {{ modeText }}
+        </span>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section ref="composerPanel" class="composer">
+        <div class="composer-head">
+          <h2>想学点什么？</h2>
+          <span class="hint">例如：MCP 协议、FastAPI 异步编程、Docker 网络原理</span>
+        </div>
+
+        <textarea
+          v-model="topic"
+          rows="3"
+          maxlength="200"
+          placeholder="输入一个具体主题，讲师会生成完整课程"
+          @keydown.enter.exact.prevent="generate"
+        ></textarea>
+
+        <div class="actions">
+          <button class="primary" :disabled="loading" @click="generate">
+            {{ loading ? '备课中...' : '生成课程' }}
+          </button>
+          <button class="secondary" @click="showSettings = !showSettings">
+            {{ showSettings ? '收起设置' : '接口设置' }}
+          </button>
+        </div>
+
+        <div v-if="showSettings" class="settings">
+          <label>
+            DeepSeek API Key
+            <input v-model="apiKey" type="password" placeholder="留空则使用服务端 .env 配置">
+          </label>
+          <label>
+            模型
+            <input v-model="model" placeholder="deepseek-chat">
+          </label>
+          <button class="secondary" @click="saveSettings">保存设置</button>
+        </div>
+
+        <div v-if="loading" class="status">
+          <div class="spinner"></div>
+          <span>正在让讲师备课，通常在 30 秒内完成...</span>
+        </div>
+        <div v-if="error" class="error">{{ error }}</div>
+      </section>
+
+      <aside ref="historyPanel" class="history">
+        <div class="history-head">
+          <h2>历史课程</h2>
+          <button class="text-btn" @click="loadCourses">刷新</button>
+        </div>
+        <div class="history-list">
+          <div v-if="loadingCourses" class="empty">加载中...</div>
+          <div v-else-if="!courses.length" class="empty">还没有生成课程</div>
+          <button
+            v-for="course in courses"
+            :key="course.filename"
+            class="course-item"
+            :class="{ active: previewUrl === course.file_url }"
+            @click="openCourse(course)"
+          >
+            <span class="course-title">{{ course.title }}</span>
+            <span class="course-time">{{ course.modified_at }}</span>
+          </button>
+        </div>
+      </aside>
+
+      <section v-if="previewUrl" class="preview-panel">
+        <div class="preview-head">
+          <span class="preview-title">{{ currentTitle }}</span>
+          <div class="preview-actions">
+            <a :href="previewUrl" target="_blank" rel="noopener">新窗口打开</a>
+            <button class="text-btn" @click="closePreview">关闭预览</button>
+          </div>
+        </div>
+        <iframe :src="previewUrl" title="课程预览"></iframe>
+      </section>
+    </main>
+  </div>
+
+  <script src="/vendor/vue.global.prod.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
